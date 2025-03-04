@@ -1,9 +1,3 @@
---[[
-  Creator: varenst 
-
-  Server Side of simulator invnetory system
-]]
-
 -----------------------------------------------------------
 --------------------- TYPE DEFINITION ---------------------
 -----------------------------------------------------------
@@ -58,7 +52,7 @@ local function GetPetCFrames(PetIds, PlayerCFrame : CFrame, RayParams)
 
 	local n = #PetIds
 	
-	if n == 1 then
+	if n == 1 then --// If there is only 1 pet, place it right behind the player by simply subtracting the lookvector from player position
 		local GoalPosition = PlayerCFrame.Position - PlayerLookVector * StepDelta
 		
 		local Results = workspace:Raycast(GoalPosition + Vector3.yAxis * 7, -Vector3.yAxis * 30, RayParams)
@@ -70,12 +64,11 @@ local function GetPetCFrames(PetIds, PlayerCFrame : CFrame, RayParams)
 		end
 	end
 
-	local MaxPetsRow = math.ceil(n/2)
-	
-	for i = 1, math.floor(n/2) do
+	for i = 1, math.floor(n/2) do --// n/2, if there are 3 pets it would be 1.5 by flooring we get 1 meaning we get 2 positions instead of 4
 		local GoalPosition1 = PlayerCFrame.Position + (-PlayerLookVector * StepDelta * i) + (PlayerRightVector * 4)
 		local GoalPosition2 = PlayerCFrame.Position + (-PlayerLookVector * StepDelta * i) + (-PlayerRightVector * 4)
 
+		--// Raycasts to understand if anything is below the pets, if there is then the pet will stand on them
 		local Results1 = workspace:Raycast(GoalPosition1 + Vector3.yAxis * 7, -Vector3.yAxis * 30, RayParams)
 		local Results2 = workspace:Raycast(GoalPosition2 + Vector3.yAxis * 7, -Vector3.yAxis * 30, RayParams)
 		
@@ -93,7 +86,10 @@ local function GetPetCFrames(PetIds, PlayerCFrame : CFrame, RayParams)
 
 	local IsEven = n % 2 == 0
 	
+	--// If it's not even then it applies the same logic as in the first if statement
 	if not IsEven then
+		local MaxPetsRow = math.ceil(n/2)
+
 		local GoalPosition = PlayerCFrame.Position - PlayerLookVector * StepDelta * MaxPetsRow
 		
 		local Results = workspace:Raycast(GoalPosition + Vector3.yAxis * 7, -Vector3.yAxis * 30, RayParams)
@@ -112,6 +108,9 @@ end
 ------------------------- EXPORTS -------------------------
 -----------------------------------------------------------
 
+--//PlayerData, is an playerobject that has data inside of it
+--//for example, 'Has2xdamage gampass', 'cash', and more
+--// Also no metatables simply, because I think this looks more intuitive based on my experience with Rust programming language
 function PetStorage.new(Player : Player, PlayerData : PlayerData)
 	local Storage = {
 		PetInventory = {},
@@ -128,6 +127,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 	local PetParams = RaycastParams.new()
 	PetParams.FilterType = Enum.RaycastFilterType.Exclude
 	
+	--// Functions that are used only by this object are local, to not overwhelm whoever creates it
 	local function IsUidInInventory(CheckingUID)
 		for PetId, UIDArray in pairs(Storage.PetInventory) do
 			for Index, UID in pairs(UIDArray) do
@@ -170,6 +170,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		return BestInventoryMultiplayer
 	end
 	
+	--// checks if current space is taken by simply comparing current pet amounts to max pet amounts
 	function Storage.CurrentStorageSpaceTaken()
 		return CurrentStorageSpaceTaken()
 	end
@@ -183,6 +184,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		}
 	end
 	
+	--// PetData is a configuration that has the pet id and the multiplier, so this returns the sum of all equipeed pet multiplayers
 	function Storage.GetCurrentMultiplayer()
 		local Multiplayer = 1
 		
@@ -228,6 +230,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 			StartTime = tick()
 		end
 		
+		--// Cool up and down + right and left animation
 		local MovementTransform = IsPlayerMoving and CFrame.Angles(math.rad(8 * math.cos((tick() - StartTime) * 5)), 0, 0) or CFrame.Angles(0, 0, 0)
 
 		local CFrameIndex = 1
@@ -243,6 +246,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		end
 	end
 	
+	--// Equips the pet
 	function Storage.EquipPets(UID)
 		if type(UID) == "table" then
 			for Index, RealUid in pairs(UID) do
@@ -278,6 +282,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		PlayerData.UpdateClient()
 	end
 	
+	--//Unequips the pet
 	function Storage.UnequipPets(UID, callback)
 		if type(UID) == "table" then
 			for Index, RealUid in pairs(UID) do
@@ -310,6 +315,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		table.remove(Storage.CurrentEquipedPets, 1)
 	end
 	
+	--// Adds Pet to storage
 	function Storage.AddPet(PetId, Amount, NoCallback)
 		if CurrentStorageSpaceTaken() + Amount > Storage.MaxInventoryPets then return end
 	
@@ -328,6 +334,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		PlayerData.UpdateClient()
 	end
 	
+	--// Removes Pet from storage
 	function Storage.RemovePet(RemovePetIds)
 		for Index, UID in pairs(RemovePetIds) do
 			Storage.UnequipPets(UID, true)
@@ -342,6 +349,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		PlayerData.UpdateClient()
 	end
 	
+	--// Creates a golden pet
 	function Storage.GetGoldenPet(CurrentSamplePetId, UidArray)
 		if #UidArray == 0 then return end
 		
@@ -354,6 +362,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		Storage.AddPet(PetIdGoldenMap[tonumber(CurrentSamplePetId)], 1)
 	end
 	
+	--// Hatching logic with all of the multiplayers on luck
 	function Storage.HatchEgg(EggId, Amount, NoAddPetIDs)
 		if CurrentStorageSpaceTaken() + Amount > Storage.MaxInventoryPets then
 			ReceiveNotification:FireClient(Player, "Pet Inventory is full")
@@ -393,6 +402,7 @@ function PetStorage.new(Player : Player, PlayerData : PlayerData)
 		return ReturnPetIds
 	end
 	
+	--// when player leaves deletes pet models
 	function Storage.Remove()
 		for Index, Model in pairs(CurrentPetModels) do
 			Model:Destroy()
