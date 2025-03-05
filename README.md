@@ -1,4 +1,4 @@
-# HD-application
+# Application
 Application for a scripter role in a discord server
 
 Demo video
