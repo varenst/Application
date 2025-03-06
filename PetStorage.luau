@@ -497,17 +497,17 @@ function PetStorage:HatchEgg(EggId, Amount, NoAddPetIDs)
 		)
 
 		for Index, Data in pairs(EggData[EggId].Data) do
-			if x < Data.Value then
-				local IsInNoAddPet = table.find(NoAddPetIDs, Data.PetId)
+			if x >= Data.Value then continue end
 
-				if not IsInNoAddPet then
-					self:AddPet(Data.PetId, 1, true)
-				end
+			local IsInNoAddPet = table.find(NoAddPetIDs, Data.PetId)
 
-				table.insert(ReturnPetIds, Data.PetId)
-
-				break
+			if not IsInNoAddPet then
+				self:AddPet(Data.PetId, 1, true)
 			end
+
+			table.insert(ReturnPetIds, Data.PetId)
+
+			break
 		end
 	end
 
@@ -522,7 +522,7 @@ function PetStorage:Remove()
 	for Index, Model in pairs(self.CurrentPetModels) do
 		Model:Destroy()
 	end
-	
+
 	setmetatable({}, nil)
 end
 
